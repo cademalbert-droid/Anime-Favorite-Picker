@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0">
+<title>Picker</title>
+<style>
+body {
+    background:#FFF;
+    color:#000;
+    font-family:verdana, sans-serif;
+    font-size:10pt;
+    margin:0;
+    padding:10px;
+}
+
+a:link, a:visited {
+    color:#008;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a:active, a:hover {
+    color:#ACF;
+}
+
+.info {
+    font-weight:bold;
+}
+
+button {
+    font-family:inherit;
+    cursor:pointer;
+    border:0;
+    border-radius:3px;
+    padding:0.3em 0.5em;
+    background:#CCC;
+    color:#000;
+}
+
+button:hover {
+    background:#DDD;
+}
+
+button.disabled {
+    background:#DDD;
+    color:#888;
+    cursor:not-allowed;
+}
+
+button.disabled:hover {
+    background:#DDD;
+}
+
+#container {
+    position:relative;
+    margin-left:-10px;
+    margin-right:-10px;
+    padding:10px;
+    overflow:hidden;
+}
+
+@media (min-width:1024px) {
+    /* Put the found favorites beside the picking div when the window is sufficiently large */
+    #picking {
+        float:left;
+        width:636px;
+    }
+
+    #secondary {
+        margin-left:646px;
+    }
+}
+
+@media (min-width:1300px) {
+    /* Once we get to the point where 636px is less than half of the width of the screen, make the picking div just take up half */
+    #picking {
+        width:50%;
+    }
+
+    #secondary {
+        margin-left:51%;
+    }
+}
+
+#pick {
+    background:#58F;
+    color:#FFF;
+    font-size:larger;
+    font-weight:bold;
+    width:6em;
+    border-radius:5px;
+    margin-right:10px;
+}
+
+#pick.disabled {
+    background:#ACF;
+}
+
+#pick:hover {
+    background:#ACF;
+}
+
+.item-list {
+    padding:0;
+    list-style-type:none;
+    line-height:100px;
+}
+
+.item-list li {
+    margin:0;
+    display:inline-block;
+    height:100px;
+    width:100px;
+    line-height:100px;
+    border:3px solid transparent;
+    text-align:center;
+    position:relative;
+    vertical-align:top;
+    overflow:hidden;
+    border-radius:100%;
+    background:#F7F7F7;
+    color:#000;
+}
+
+.item-list li img {
+    vertical-align:middle;
+    max-height:100%;
+    max-width:100%;
+}
+
+.item-list li span {
+    display:inline-block;
+    vertical-align:middle;
+    line-height:1.2;
+}
+
+@media (max-width:636px) {
+    .item-list {
+        line-height:75px;
+    }
+
+    .item-list li {
+        line-height:75px;
+        height:75px;
+        width:75px;
+    }
+}
+
+@media (max-width:423px) {
+    .item-list {
+        line-height:50px;
+    }
+
+    .item-list li {
+        line-height:50px;
+        height:50px;
+        width:50px;
+    }
+}
+
+#evaluating li {
+    cursor:pointer;
+}
+
+#favorites li {
+    cursor:move;
+}
+
+.item-list li:hover {
+    background:#CDF;
+}
+
+.item-list.sorting li:hover {
+    background:#F7F7F7;
+}
+
+#evaluating li.selected {
+    border:3px solid #7AC;
+}
+
+#evaluating, #buttons {
+    text-align:center;
+    margin:auto;
+}
+
+#evaluating li.notice {
+    width:auto;
+    height:auto;
+    max-width:260px;
+    margin:auto;
+    background:#F7F7F7;
+    border-radius:10px;
+    padding:30px 30px;
+    color:#000;
+    text-align:center;
+    line-height:1.4;
+    cursor:auto;
+    font-size:10pt;
+}
+
+#buttons {
+    margin-top:30px;
+    position:relative;
+    z-index:3;
+}
+</style>
+</head>
+<body>
+<h1>Picker</h1>
+
+<p>You can include any content you want here.</p>
+
+<div id="container">
+
+<div id="picking">
+<ul id="evaluating" class="item-list">
+</ul>
+
+<p id="buttons"><button id="pick">Pick</button> <button id="pass">Pass</button> <button id="undo">Undo</button> <button id="redo">Redo</button></p>
+</div>
+
+<div id="secondary">
+<h2>Found favorites</h2>
+
+<ol id="favorites" class="item-list">
+</ol>
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script src="picker.js"></script>
+<script src="picker-ui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.7.0/Sortable.min.js"></script>
+<script>
+'use strict';
+
+var items = [
+{id: "Luffy", name: "Monkey D. Luffy (One Piece)", image: "Luffy Real.jpg"},
+{id: "Zoro", name: "Zoro (One Piece)", image: "ZoroPic.jpg"},
+{id: "Sanji", name: "Sanji (One Piece)", image: "SanjiReal.jpg"},
+{id: "Nami", name: "Nami (One Piece)", image: "NamiReal.jpg"},
+{id: "Franky", name: "Franky (One Piece)", image: "FrankyPic.jpg"},
+{id: "Chopper", name: "Chopper (One Piece)", image: "HopefullyChopper.webp"},
+{id: "Robin", name: "Nico Robin (One Piece)", image: "RobinReal.jpg"},
+{id: "Brook", name: "Brook (One Piece)", image: "BrookPic.webp"},
+{id: "Usopp", name: "Usopp (One Piece)", image: "UsoppPic.png"},
+{id: "Jinbe", name: "Jinbe (One Piece)", image: "JinbePic.jpeg"},
+{id: "Law", name: "Trafalgar D. Law (One Piece)", image: "LawPic.jpg"},
+{id: "Bepo", name: "Bepo (One Piece)", image: "BepoPic.webp"},
+{id: "Ace", name: "Ace (One Piece)", image: "AceFinalIThink.jpg"},
+{id: "Sabo", name: "Sabo (One Piece)", image: "SaboReal.webp"},
+{id: "Crocus", name: "Crocus (One Piece)", image: "CrocusBetter.webp"},
+{id: "Monkey D. Dragon", name: "Monkey D. Dragon (One Piece)", image: "Dragon OP Real.jpg"},
+{id: "Gol D. Roger", name: "Gol D. Roger (One Piece)", image: "Gol D. Roger.webp"},
+{id: "Hack", name: "Hack (One Piece)", image: "HackPic.webp", image: "HackProbGoodNow.webp"},
+{id: "Ivankov", name: "Ivankov (One Piece)", image: "IvankovReal.webp"},
+{id: "Koala", name: "Koala (One Piece)", image: "KoalaReal.webp"},
+{id: "Kuma", name: "Kuma (One Piece)", image: "KumaProbGood.png"},
+{id: "Marco", name: "Marco (One Piece)", image: "MarcoReal.jpg"},
+{id: "Rayleigh", name: "Rayleigh (One Piece)", image: "RayleighPic.jpg"},
+{id: "Whitebeard", name: "Whitebeard (One Piece)", image: "WhitebeardPic.webp"},
+
+
+
+
+
+
+
+
+{id: "Jin-Woo", name: "Jin-Woo (Solo Leveling)", image: "JinWooBetter.jpg"},
+{id: "Cha Hae-In", name: "Cha Hae-In (Solo Leveling)", image: "ChaHaeTop.jpg"},
+{id: "Choi Jong-In", name: "Choi Jong-In (Solo Leveling)", image: "ChoiPic.jpg"},
+{id: "Yoo Jin-Ho", name: "Yoo Jin-Ho (Solo Leveling)", image: "YooJinHoPic.jpg"},
+{id: "Baek Yoon-Ho", name: "Baek Yoon-Ho (Solo Leveling)", image: "BaekYoonHoPic.jpg"},
+{id: "Igris", name: "Igris (Solo Leveling)", image: "IgrisSoloLeveling.jpg"}, 
+{id: "Chairman Go", name: "Chairman Go (Solo Leveling)", image: "ChairmanGoPic.jpg"},
+{id: "Byung Gyu", name: "Byung Gyu (Solo Leveling)", image: "Byung GyuPic.jpg"},
+
+{id: "Marin", name: "Marin (My Dress Up Darling)", image: "MarinPic.jpg"},
+{id: "Wakana Gojo", name: "Wakana Gojo (My Dress Up Darling)", image: "WakanaGojoPic.jpg"},
+
+{id: "Tanjiro", name: "Tanjiro (Demon Slayer)", image: "TanjiroPic.jpg"},
+{id: "Zenitsu", name: "Zenitsu (Demon Slayer)", image: "ZenitsuPic.jpg"},
+{id: "Rengoku", name: "Rengoku (Demon Slayer)", image: "RengokuPic.jpg"},
+{id: "Inosuke", name: "Inosuke (Demon Slayer)", image: "IgnosukePic.jpg"},
+{id: "Giyu", name: "Giyu (Demon Slayer)", image: "GiyuPic.jpg"},
+
+{id: "Ban Klondike", name: "Ban Klondike (High Card)", image: "BanKlondikeBetter.jpg"},
+{id: "Finn", name: "Finn (High Card)", image: "FinnPic.jpg"},
+{id: "Chris Redgrave", name: "Chris Redgrave (High Card)", image: "ChrisRedPicReal.jpg"},
+{id: "Vjay", name: "Vjay (High Card)", image: "VjayHighCardPic.jpg"},
+{id: "Wendy Sato", name: "Wendy Sato (High Card)", image: "WendyHighCardPic.jpg"},
+{id: "Leo Constantine", name: "Leo Constantine (High Card)", image: "LeoHighCardPic.jpg"},
+{id: "TILT", name: "TILT (High Card)", image: "TILTPic.jpg"},
+{id: "Bobby Ball", name: "Bobby Ball (High Card)", image: "BobbyBallPic.jpg"},
+{id: "Bernard", image: "Bernard (High Card)", image: "BernardHighCard.jpg"},
+
+{id: "Asuka", name: "Asuka (Evangelion)", image: "AsukaPic.jpg"},
+{id: "Gendo Ikari", name: "Gendo Ikari (Evangelion)", image: "GendoIkariPic.jpg"},
+{id: "Kaji", name: "Kaji (Evangelion)", image: "KajiPic.jpg"},
+{id: "Misato Katsuragi", name: "Misato Katsuragi (Evangelion)", image: "KatsugariPic.jpg"},
+{id: "Kaworu", name: "Kaworu (Evangelion)", image: "KaworuPic.jpg"},
+{id: "Rei", name: "Rei (Evangelion)", image: "ReiPic.jpg"},
+{id: "Shinji", name: "Shinji (Evangelion)", image: "ShinjiPic.jpg"},
+{id: "Toji Suzuhara", name: "Toji Suzuhara (Evangelion)", image: "TojiSuzuharaPic.jpg"},
+
+{id: "Shouya", name: "Shouya (A Silent Voice)", image: "ShoyaIshadaPic.jpg"},
+{id: "Shouko", name: "Shouko (A Silent Voice)", image: "ShoukoPic.jpg"},
+{id: "Tomohiro", name: "Tomohiro (A Silent Voice)", image: "TomohiroPic.jpg"},
+{id: "Yuzuru", name: "Yuzuru (A Silent Voice)", image: "YuzuruPic.jpg"},
+
+{id: "L", name: "L (Death Note)", image: "LDeathNotePic.jpg"},
+{id: "Light", name: "Light (Death Note)", image: "LightPic.jpg"},
+{id: "Rem", name: "Rem (Death Note)", image: "RemPic.jpg"},
+{id: "Watari", name: "Watari (Death Note)", image: "WatariPic.jpg"},
+{id: "Matsuda", name: "Matsuda (Death Note)", image: "MatsudaPic.jpg"},
+{id: "Near", name: "Near (Death Note)", image: "NearImage.jpg"},
+{id: "Mello", name: "Mello (Death Note)", image: "MelloPic.jpg"},
+{id: "Naomi Misora", name: "Naomi Misora (Death Note)", image: "NaomiMisoraDeathNote.jpg"},
+{id: "Sochiro Yagami", name: "Sochiro Yagami (Death Note)", image: "SochiroYagamiPic.jpg"},
+{id: "Ryuk", name: "Ryuk (Death Note)", image: "RyukRealPic.jpg"},
+{id: "Teru Mikami", name: "Teru Mikami (Death Note)", image: "TeruMikamiPic.jpg"},
+{id: "Misa Amane", name: "Misa Amane (Death Note)", image: "Misa AmanePic.jpg"},
+
+{id: "Lelouch", name: "Lelouch (Code Geass)", image: "LelouchPic.jpg"},
+{id: "Anya", name: "Anya (Code Geass)", image: "AnyaPic.jpg"},
+{id: "C.C", name: "C.C (Code Geass)", image: "C.CPic.jpg"},
+{id: "Charles zi Britannia", name: "Charles zi Britania (Code Geass)", image: "CharlesPic.jpg"},
+{id: "Cornelia", name: "Cornelia li Britannia (Code Geass)", image: "CorneliaPic.jpg"},
+{id: "Diethard", name: "Diethard (Code Geass)", image: "DiethardPic.jpg"},
+{id: "Tianzi", name: "Empress Tianzi (Code Geass)", image: "EmpressTianziPIc.jpg"},
+{id: "Euphy", name: "Euphemia li Britannia (Code Geass)", image: "EuphyPic.jpg"},
+{id: "Gino Weinberg", name: "Gino Weinberg (Code Geass)", image: "GinoPic.jpg"},
+{id: "Jeremiah Gottwald", name: "Jeremiah Gottwald (Code Geass)", image: "JeremiahPic.jpg"},
+{id: "Kaguya Sumeragi", name: "Kaguya Sumeragi (Code Geass)", image: "KaguyaSumeragiPic.jpg"},
+{id: "Kallen", name: "Kallen (Code Geass)", image: "KallenPic.jpg"},
+{id: "Li Xingke", name: "Li Xingke (Code Geass)", image: "LiXingkeBetterPic.jpg"},
+{id: "LLoyd", name: "Lloyd (Code Geass)", image: "LloydPic.jpg"},
+{id: "Mao", name: "Mao (Code Geass)", image: "MaoPic.jpg"},
+{id: "Milly Ashford", name: "Milly Ashford (Code Geass)", image: "MillyAShfordRealer.jpg"},
+{id: "Nina", name: "Nina (Code Geass)", image: "NinaPic.jpg"},
+{id: "Nunnally", name: "Nunnally (Code Geass)", image: "NunnallyPic.jpg"},
+{id: "Ohgi", name: "Kaname Ohgi (Code Geass)", image: "OhgiPic.jpg"},
+{id: "Rakshata Chawla", name: "Rakshata Chawla (Code Geass)", image: "RakshataChawlaPic.jpg"},
+{id: "Rivalz", name: "Rivalz (Code Geass)", image: "RivalzPic.jpg"},
+{id: "Rolo", name: "Rolo (Code Geass)", image: "RoloPic.jpg"},
+{id: "Prince Schneizel", name: "Schneizel el Britannia (Code Geass)", image: "SchnietzelPic.jpg"},
+{id: "Shirley", name: "Shirley (Code Geass)", image: "ShirleyPic.jpg"},
+{id: "Suzaku", name: "Suzaku (Code Geass)", image: "SuzakuPic.jpg"},
+{id: "V.V", name: "V.V (Code Geass)", image: "V.VPic.jpg"},
+{id: "Villetta", name: "Villetta (Code Geass)", image: "VillettaPic.jpg"},
+
+
+
+
+
+
+
+
+
+
+
+];
+
+var myPicker = new picker.Picker({
+    items: items,
+  localStorageKey: 'picker-state',
+    defaultSettings: {
+        minBatchSize: 2,
+        maxBatchSize: 2
+    }
+    
+});
+
+var pickerUI = new PickerUI(myPicker, {
+    elements: {
+        pick: "#pick",
+        pass: "#pass",
+        undo: "#undo",
+        redo: "#redo",
+        evaluating: "#evaluating",
+        favorites: "#favorites"
+       
+    }
+});
+
+pickerUI.initialize();
+
+/* Sortable favorites - you can safely remove this, and the Sortable.min.js script, if you don't want to be able to sort your favorite list. */
+var sortable = new Sortable(pickerUI.elem.favorites.get(0), {
+    draggable: '.item',
+    animation: 100,
+    onStart: function() {
+        pickerUI.elem.favorites.addClass("sorting");
+    },
+    onEnd: function() {
+        pickerUI.elem.favorites.removeClass("sorting");
+    },
+    onUpdate: function() {
+        myPicker.setFavorites(pickerUI.elem.favorites.children().map(function() {
+            return pickerUI.getItem(this);
+        }).get());
+        pickerUI.update(true);
+    }
+});
+/* End sortable favorites */
+</script>
+</body>
+</html>
